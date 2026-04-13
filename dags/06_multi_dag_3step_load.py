@@ -21,10 +21,8 @@ DATA_PATH = '/opt/airflow/dags/data'
 os.makedirs(DATA_PATH, exist_ok=True)
 
 def _load(**kwargs):
-    # csv => df => mysql 적재
-    # 1. csv 경로 획득 -> xcom을 통해서 이전 task(게시자)의 id를 이용하여 추출 <- ti 필요
-    ti = kwargs['ti']
-    csv_path = ti.xcom_pull(task_ids='transform')
+    dag_run = kwargs['dag_run']
+    csv_path = dag_run.conf.get('csv_path')
 
     # 2. csv -> df (도입 근거 -> 소규모 데이터이므로 pandas로 처리)
     df = pd.read_csv( csv_path )
@@ -81,7 +79,24 @@ with DAG(
     catchup     = False,
     tags        = ['mysql', 'etl'],
 ) as dag:
+    task_create_table = SQLExecuteQueryOperator(
+        task_id = "create_table",
+        conn_id = "mysql_default",
+        sql = '''
+            CREATE TABLE IF NOT EXISTS sensor_readings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sensor_id VARCHAR(50),
+                timestamp DATETIME,
+                temperature_c FLOAT,
+                temperature_f FLOAT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        '''
+    )
+
     task_load       = PythonOperator(
         task_id = "load",
         python_callable = _load
     )
+
+    task_create_table >> task_load
