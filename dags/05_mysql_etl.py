@@ -102,7 +102,7 @@ def _load(**kwargs):
         with conn.cursor() as cursor:        
             # 4-1. insert 구문 사용
             sql = '''
-                insert into senser_readings
+                insert into sensor_readings
                 ( sensor_id, timestamp, temperature_c, temperature_f )
                 values ( %s, %s, %s, %s )
             '''
