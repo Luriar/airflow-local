@@ -74,7 +74,7 @@ def _transform(**kwargs):
     
     # 4. 전처리된 내용은 csv로 덤프 (s3로 업로드 고려)
     # 파일명 준비 /opt/airflow/dags/data/preprocessing_data_DAG수행날짜.csv
-    file_path = f'{DATA_PATH}/preprocessing_data_{ kwargs['ds_nodash'] }.csv'
+    file_path = f"{DATA_PATH}/preprocessing_data_{ kwargs['ds_nodash'] }.csv"
     # 저장
     target_df.to_csv( file_path, index=False ) # 인덱스 제외
     logging.info(f'전처리후 csv 저장 완료 {file_path}') # airflow가 aws에서 가동되면 s3로 저장
