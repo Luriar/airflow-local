@@ -1,15 +1,15 @@
+'''
+DAG -> DAG 작동 시키는(오퍼레이터) 트리거 필요함 -> 핵심
+'''
+
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 import logging
-# 추가분
-#from airflow.providers.mysql.operators.mysql import MysqlOperator
-# 범용 sql 오퍼레이터로 대체
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-# Load 처리시 sql에 전처리된 데이터를 밀어 넣을때 사용
-# 데이터
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator # 핵심
 import json
 import random
+import pandas as pd
 import os
 
 # 2. 기본설정
@@ -65,3 +65,22 @@ with DAG(
         task_id = "extract",
         python_callable = _extract
     )
+    # 신규 추가 오퍼레이터
+    # 다음 DAG를 실행시키는 트리거 발동하는 역할
+    task_trigger_transform_dag_run = TriggerDagRunOperator(
+        task_id = "trigger_transform",
+        # 트리거 대상
+        trigger_dag_id = "06_multi_dag_2step_transform", # 구동시킬 DAG id
+        # 전달할 데이터 -> xcom을 통해서 획득 가능 (동일 dag에 존대 -> jinja 템플릿 활용)
+        conf    = {
+            "json_path" : "{{ task_instance.xcom_pull(task_ids='extract') }}" 
+        },
+        # dag 수행시간 세팅 -> 동일하게 맞추겠다 PythonOperator의 작동시간과 (컨셉)
+        # 1개의 DAG에서 task 간 시간차와 유사하게 혹은 거의 동일하게 맞추고자 하는 컨셉
+        reset_dag_run = True,
+        # 기타 설정
+        wait_for_completion = False # 타 DAG가 수행하라는 명령을 전달하면 대기 없이 바로 본 task 종료(비동기 처리)
+    )
+
+    # 의존성
+    task_extract >> task_trigger_transform_dag_run
