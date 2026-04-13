@@ -81,7 +81,6 @@ def _transform(**kwargs):
 
     # 5. csv 경로 xcom을 통해서 개시
     return file_path
-    pass
 
 def _load(**kwargs):
     # csv => df => mysql 적재
@@ -126,8 +125,6 @@ def _load(**kwargs):
             conn.close()
             logging.info('mysql 연결 종료 (뒷정리)')
     
-    pass
-
 # 3. DAG 정의
 with DAG(
     dag_id      = "05_mysql_etl", 
