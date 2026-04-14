@@ -5,6 +5,7 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.providers.mysql.hooks.mysql import MySqlHook
 import logging
 import json
 import requests # api 호출용, MSA 서비스 호출용
@@ -53,23 +54,46 @@ def _api_service_call(**kwargs):
 
 def _load_users_credit(**kwargs):
     # 1. 신용 평가 결과값 획득
+    ti = kwargs['ti']
+    users_grade = ti.xcom_pull(task_ids='task_api_service_call')
+    if not users_grade:
+        logging.error('신용 평가 결과 없음')
+        raise ValueError('신용 평가 결과 없음') # 작업 실패로 표현 -> red 태그 구성
+    
     # 2. MySqlHook을 이용하여 연결
-    # 3. 테이블이 없으면 생성(임시편성)
-    #    cursor.execute()
-    '''
-        CREATE TABLE IF NOT EXISTS customers (
-        user_id VARCHAR(50) PRIMARY KEY,
-        income INT DEFAULT NULL,
-        loan_amt INT DEFAULT NULL,
-        credit_score INT DEFAULT NULL,
-        grade VARCHAR(10) DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    '''
-    # 4. 신용평가 결과 삽입
-    # 5. 커밋
-    # 6. 연결종료
-    pass
+    mysql_hook = MySqlHook(mysql_conn_id='mysql_default')
+    with mysql_hook.get_conn() as conn:
+        pass
+        with conn.cursor() as cursor:
+            # 3. 테이블이 없으면 생성(임시편성)
+            #    cursor.execute()
+            '''
+                CREATE TABLE IF NOT EXISTS customers (
+                user_id VARCHAR(50) PRIMARY KEY,
+                income INT DEFAULT NULL,
+                loan_amt INT DEFAULT NULL,
+                credit_score INT DEFAULT NULL,
+                grade VARCHAR(10) DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            '''
+            
+            # 4. 신용평가 결과 삽입
+            sql = '''
+                insert into customers
+                ( user_id, credit_score, grade )
+                values ( %s, %s, %s )
+            '''
+            # 여러 데이터를 한 번에 넣을 때 유용 -> executemany() 대응
+            params = [
+                (data['user_id'], data['credit_score'], data['grade'])
+                for data in users_grade # 데이터가 없을 때까지 반복함 -> 데이터가 한세트씩 추출됨
+            ]
+            logging.info(f'입력할 데이터(파라미터) {params}')
+            cursor.executemany( sql, params )
+            # 5. 커밋
+            conn.commit()
+            # 6. 연결종료 -> 커서 닫기 -> 커넥션 닫기 : 자동
 
 # 3. DAG 정의
 with DAG(
