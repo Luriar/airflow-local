@@ -20,9 +20,9 @@ def _create_dummy_data(**kwargs):
     # 차후 버전은 db 테이블에서 조회 -> 데이터 구성
     # 현재 버전은 더미 데이터를 임시 구성 xcom 전달하여 다음 task에서 사용
     users = [
-        {"user_id":"C001", "income": 5000, "loan_amount": 2000},
-        {"user_id":"C002", "income": 4000, "loan_amount": 5000},
-        {"user_id":"C003", "income": 8000, "loan_amount": 1000}
+        {"user_id":"C001", "income": 5000, "loan_amt": 2000},
+        {"user_id":"C002", "income": 4000, "loan_amt": 5000},
+        {"user_id":"C003", "income": 8000, "loan_amt": 1000}
     ]
     # xcom으로 데이터 전달
     return users

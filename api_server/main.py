@@ -28,7 +28,7 @@ class ReqData(BaseModel): # 요청
     # 사용자 아이디, 소득, 대출 총량
     user_id: str # 타입 힌트
     income: int
-    loan_amount: int
+    loan_amt: int
     pass
 
 class ResData(BaseModel): # 응답

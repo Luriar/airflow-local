@@ -122,21 +122,7 @@ def _load_users_credit(**kwargs):
     # 2. MySqlHook을 이용하여 연결
     mysql_hook = MySqlHook(mysql_conn_id='mysql_default')
     with mysql_hook.get_conn() as conn:
-        pass
         with conn.cursor() as cursor:
-            # 3. 테이블이 없으면 생성(임시편성)
-            #    cursor.execute()
-            '''
-                CREATE TABLE IF NOT EXISTS customers (
-                user_id VARCHAR(50) PRIMARY KEY,
-                income INT DEFAULT NULL,
-                loan_amt INT DEFAULT NULL,
-                credit_score INT DEFAULT NULL,
-                grade VARCHAR(10) DEFAULT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            '''
-            
             # 4. 신용평가 결과 삽입
             sql = '''
                 update customers
