@@ -65,7 +65,26 @@ def _create_dummy_data(**kwargs):
             pass
 
 def _extract_data(**kwargs):
-    pass
+    # 현재는 mysql에서 조회하여 획득
+    # 차후는 데이터의 위치에 따라 -> Athena, opensearch, redshift, ... 에서 조회 -> 획득
+    # DB -> MySqlHook -> Pandas -> List[ dict, dict, ... ]
+    mysql_hook = MySqlHook(mysql_conn_id='mysql_default')
+    # sql -> df 구성
+    # 신용평가 점수가 없는 고객만 대상( 향후, 갱신기간이 도래한 고객까지 포함 )
+    df = mysql_hook.get_pandas_df('''
+        select
+            user_id, income, loan_amt
+        from
+            customers
+        where
+            credit_score is NULL
+    ''')
+    # 결과셋 체크
+    if df.empty:
+        logging.info('신규 고객 없다')
+        return []
+    # 변환 -> xcom 전달
+    return df.to_dict(orient='records')
 
 def _api_service_call(**kwargs):
     # xcom에 게시될 때는 키 값이 캌멜 표기법으로 조정, 추출할 때는 다시 스네이크 표기법 복원됨
@@ -173,4 +192,4 @@ with DAG(
     )
 
     # 5. 의존성, 각 task는 xCom 통신으로 데이터 공유ㅌ
-    task_create_dummy_data #>> task_extract_data >> task_api_service_call >> task_load_users_credit
+    task_create_dummy_data >> task_extract_data >> task_api_service_call >> task_load_users_credit
