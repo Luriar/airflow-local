@@ -115,10 +115,11 @@ def _load(**kwargs):
             # 4-2. 커밋
             conn.commit()
             logging.info('mysql에 적재 완료')
-            pass        
     except Exception as e:
-        logging.info(f'적재 오류 : {e}') # 예외 던지기 변경 필요 (리뷰 때)
-        pass
+        logging.exception(f'적재 오류 : {e}')
+        if conn:
+            conn.rollback()
+        raise
     finally:
         # 5. 연결 종료
         if conn:
