@@ -66,7 +66,7 @@ def _load_users_credit(**kwargs):
         pass
         with conn.cursor() as cursor:
             # 3. 테이블이 없으면 생성(임시편성)
-            #    cursor.execute()
+            cursor.execute(
             '''
                 CREATE TABLE IF NOT EXISTS customers (
                 user_id VARCHAR(50) PRIMARY KEY,
@@ -76,7 +76,7 @@ def _load_users_credit(**kwargs):
                 grade VARCHAR(10) DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            '''
+            ''')
             
             # 4. 신용평가 결과 삽입
             sql = '''
