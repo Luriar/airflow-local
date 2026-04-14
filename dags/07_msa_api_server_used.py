@@ -52,7 +52,23 @@ def _api_service_call(**kwargs):
     pass
 
 def _load_users_credit(**kwargs):
-
+    # 1. 신용 평가 결과값 획득
+    # 2. MySqlHook을 이용하여 연결
+    # 3. 테이블이 없으면 생성(임시편성)
+    #    cursor.execute()
+    '''
+        CREATE TABLE IF NOT EXISTS customers (
+        user_id VARCHAR(50) PRIMARY KEY,
+        income INT DEFAULT NULL,
+        loan_amt INT DEFAULT NULL,
+        credit_score INT DEFAULT NULL,
+        grade VARCHAR(10) DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    '''
+    # 4. 신용평가 결과 삽입
+    # 5. 커밋
+    # 6. 연결종료
     pass
 
 # 3. DAG 정의
