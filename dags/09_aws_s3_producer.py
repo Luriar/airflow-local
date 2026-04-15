@@ -14,7 +14,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 # 2. 환경변수
 # 버킷명 : {계정}-{root계정아이디}-{리전} <- 서비스명 누락 => 차후 리소스명 네이밍 컨벤션 체크
-BUCKET_NAME = "de-ai-30-827913617635-ap-northeast-2-an"
+BUCKET_NAME = "de-ai-12-827913617635-ap-northeast-2-an"
 # 업로드할 파일명
 FILE_NAME   = 'sensor_data.csv'
 # 버킷내에 특정 폴더 위치에 생성 -> KEY 지정 -> 버킷/income/xx.csv
