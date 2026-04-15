@@ -5,19 +5,23 @@ import boto3
 import json
 from datetime import datetime
 
-# Firehose 클라이언트 생성
-firehose = boto3.client('firehose', region_name='us-east-1')
+# 2. 환경변수
+ACCESS_KEY = ''
+SECRET_KEY = ''
+REGION = 'ap-northeast-2'
 
-# 전송할 데이터 준비
-record = {
-    'timestamp': datetime.now().isoformat(),
-    'message': 'Sample data for Firehose'
-}
+# 3. Firehose 클라이언트 생성
+def get_client( service_name = 'firehose', is_in_aws = True):
+    if not is_in_aws:
+        # AWS 외부에서 진행
+        session = boto3.Session(aws_access_key_id=ACCESS_KEY,
+                                aws_secret_access_key=SECRET_KEY,
+                                region_name=REGION
+                                )
+        return session.client(service_name)
 
-# Firehose에 데이터 전송
-response = firehose.put_record(
-    DeliveryStreamName='your-delivery-stream-name',
-    Record={'Data': json.dumps(record) + '\n'}
-)
+    # AWS 내부에서 진행
+    return boto3.client(service_name, region_name = REGION)
 
-print(f"Record ID: {response['RecordId']}")
+firehose = get_client()
+print(firehose)
