@@ -34,7 +34,7 @@ def send_log():
     # 5-1. 로그 1개 생성
     response = firehose.put_record(
         # 어디로? -> firehose 스트림 (본인 것)
-        DeliveryStreamName = 'de-ai-12-an2-kdf-log-to-s3 ',
+        DeliveryStreamName = 'de-ai-12-an2-kdf-log-to-s3',
         # 데이터
         Record = {'Data': make_one_log() + "\n"} # 로그 데이터를 한 줄씩 적재
     )
