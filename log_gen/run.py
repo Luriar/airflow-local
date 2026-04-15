@@ -17,7 +17,6 @@ log_gen_map = {
     "lol_game":log_gen.lol_game
 }
 
-
 def make_log(config):
   print(f'{config["target_industry"]} 로그 생성 시작')
   print('-'*config['total_count'])
