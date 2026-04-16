@@ -34,12 +34,12 @@ def get_client( service_name = 'firehose', is_in_aws = True):
     # AWS 내부에서 진행
     return boto3.client(service_name, region_name = REGION)
 
-firehose = get_client('kinesis', False)
-print(firehose)
+kinesis = get_client('kinesis', False)
+print(kinesis)
 
 # 4. 데이터 제너레이터 함수 구성
 def gen_stock_data():
-    ticker = ['NVIDIA', 'APPLE', 'MICROSOFT', 'AMAZON', 'GOOGLE', 'TESLA'],
+    ticker = ['NVIDIA', 'APPLE', 'MICROSOFT', 'AMAZON', 'GOOGLE', 'TESLA']
     # 종목별 특정 시간(기간) 동안 평균가 연산 -> S3 전달 목표
     return {
         "event_time" : datetime.now().isoformat(),
