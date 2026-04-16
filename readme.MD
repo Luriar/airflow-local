@@ -1,4 +1,4 @@
-# git 주소
+# 강사님 git 주소
     https://github.com/edu-kenshi/airflow-local
 
 # 패키지 
