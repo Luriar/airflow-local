@@ -57,7 +57,7 @@ try:
         data = gen_stock_data()
         # kinesis 전달
         kinesis.put_record(
-            # 스트림 이름
+            # TODO: Flink 스트림 이름 수정
             StreamName="de-ai-12-an2-kds-stock-input",
             # 데이터 (객체 직렬화하여 문자열 제공)
             Data=json.dumps(data),
