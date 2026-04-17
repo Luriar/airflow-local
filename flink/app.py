@@ -24,7 +24,7 @@ def main():
     # 데이터를 한 번에 일괄 처리 -> 배치 방식(X), 실시간(지속적) 데이터를 처리 -> 스트리밍방식(O)
     setting = EnvironmentSettings.new_instance().in_streaming_mode().build()
     # SQL과 유사한 방식으로 데이터를 다룰 수 있는 객체
-    t_env = TableEnvironment(setting)
+    t_env = TableEnvironment.create(setting)
     '''
         로그 원문 1개
         {
@@ -43,7 +43,7 @@ def main():
             event_time TIMESTAMP(3),
             ticker STRING,
             price DOUBLE,
-            WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND                      
+            WATERMARK FOR event_time AS event_time - INTERVAL '1' SECOND                      
                       ) with (
                       "connector" = "kinesis",
                       "stream" = "de-ai-12-an2-kds-stock-input",
@@ -79,7 +79,7 @@ def main():
             TUMBLE_END(event_time, INTERVAL '10' SECOND) as avg_time
         from
             stock_input
-        GROUP BY TUMBLE_END(event_time, INTERVAL '10' SECOND), ticker
+        GROUP BY TUMBLE(event_time, INTERVAL '10' SECOND), ticker
                       ''').wait()
     pass
 

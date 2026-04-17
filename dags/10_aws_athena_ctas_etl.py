@@ -1,0 +1,108 @@
+'''
+    - 현재 상황 : database 존재(athena), s3 데이터만 있다 (가정)
+    - airflow를 통해서 athena에 기본 연동
+    - task 1
+        - 테이블 생성 -> Location 정보로 특정 csv가 존재하는 버킷을 지정
+        - 해당 경로에 있는 데이터를 쿼리를 통해서 액세스 가능함
+    - task 2
+        - 작업 진행될 때 최신 상태 것만 사용 -> 기존에 어떤 내용이 있다면 제거 처리(감안)
+    - taks 3
+        - 획득한 데이터를 통해 분석 -> 결과를 특정 S3에 저장, 저장된 내용은 압축
+    - 의존성
+        - task 1-> task 2 -> task 3
+    - 스케쥴 매일 1회 진행
+'''
+
+# 1. 모듈 가져오기
+from datetime import datetime, timedelta
+from airflow import DAG
+import logging
+from airflow.providers.amazon.aws.operators.athena import AthenaOperator
+from airflow.providers.amazon.aws.sensors.athena import AthenaSensor
+from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator
+
+# 2. 환경변수
+BUCKET_NAME = 'de-ai-12-827913617635-ap-northeast-2-an'
+ATHENA_DB_NAME = 'de-ai-12-an2-glue-db'
+SRC_TABLE = 'athena_s3_data_tbl'
+TARGET_TABLE = 'pass_student'
+
+# 메타 정보, 임시 정보 필요시 저장/삭제 공간으로 활용
+S3_TARGET_LOC = f's3://{BUCKET_NAME}/athena/tbl'
+S3_QUERY_LOG_LOC = f's3//{BUCKET_NAME}/athena/query_logs'
+
+# 3. DAG 정의
+with DAG(
+    dag_id      = "10_aws_athena_ctas_el", 
+    description = "Athena CTAS 작업",
+    default_args= {
+        'owner'             : 'de_2team_manager',        
+        'retries'           : 1,
+        'retry_delay'       : timedelta(minutes=1)
+    },
+    schedule_interval = None,
+    start_date  = datetime(2026,2,25),     
+    catchup     = False,
+    tags        = ['aws', 's3', 'athena', 'ctas'],
+) as dag:
+    # 4. task 정의
+    # DAG 작동하면 S3 내 특정위치에 저장된 내용, 테이블 등을 삭제 처리 -> Clean
+    # 매번 가동시 깨끗한 초기 상태 유지 전략 -> 멱등성 유지 -> 기존 데이터와 꼬이는 문제 해결
+    # 임시로 사용한 s3 특정 공간 삭제 -> 클린
+    t1 = S3DeleteObjectsOperator(
+        task_id='clean_s3_target', # 작업 ID
+        bucket=BUCKET_NAME, # 버킷 이름
+        prefix=f'athena/tbl/{TARGET_TABLE}/', # 해당 위치가 대상
+        aws_conn_id='aws_default' # 접속정보
+    )
+    # 임시로 사용한 테이블 삭제 -> 클린
+    t2 = AthenaOperator(
+        task_id='drop_table',
+        query=f"DROP TABLE IF EXISTS {ATHENA_DB_NAME}.{TARGET_TABLE}",
+        database=ATHENA_DB_NAME,
+        output_location=S3_QUERY_LOG_LOC, # 쿼리 수행 결과 로그 저장 위치
+        aws_conn_id='aws_default' # 접속정보
+    )
+    # csv -> 테이블 맵핑 -> 쿼리 수행 -> 결과 저장 (필요시 포맷 변환)
+    # 테스트 응시 결과가 90점 이상 학생만 추출
+    # PARQUET : 압축형태 지원, GZIP등 포맷 사용, 열기반 데이터 관리
+    # 90점 이상 학생들 데이터를 추출 -> PARQUET 포맷 변환 -> GZIP 압축 -> S3_TARGET_LOC 저장
+    # 해당 소스를 TARGET_TABLE이 참조하여 -> Athena를 통해 쿼리 수행 -> 결과를 뽑아준다
+    query=f'''
+            CREATE TABLE {ATHENA_DB_NAME}.{TARGET_TABLE}
+            WITH (
+                external_location = '{S3_TARGET_LOC}/{TARGET_TABLE}/',
+                format = 'PARQUET',
+                parquet_compression = 'GZIP',
+                external_location = {S3_TARGET_LOC}
+            )
+            as
+            SELECT id, name, score, create_at
+            FROM {ATHENA_DB_NAME}.{SRC_TABLE}
+            WHERE score >= 90
+            order by score desc
+        '''
+
+    t3 = AthenaOperator(
+        task_id='create_table_format_parquet',
+        query = query,
+        database=ATHENA_DB_NAME,
+        output_location=S3_QUERY_LOG_LOC,
+        aws_conn_id='aws_default',
+        do_xcom_push = True # 테이블 만들어 졌나? 센서 가동을 조건으로 xcom 활용
+        # xCOM을 통해서 TARGET_TABLE이 생성 되엇는지 체크 -> 확인되면 t4 기타 처리 활용
+    )
+    # CTAS
+    # 10분간 최대 대기, 10초 간격 감시 -> create_table_format_parquet 테스크가 완료되었는지 점검
+    # athena상에 테이블이 완성되었는지 감시
+    t4 = AthenaSensor(
+        task_id='sensor',
+        # 앞 테스크를 감시
+        query_execution_id="{{ task_instance.xcom_pull(task_ids='create_table_format_parquet', key='return_value') }}",
+        poke_interval=10, # 10초 간격
+        timeout=600,      # 최대 대기시간
+        aws_conn_id='aws_default'
+    )
+
+    # 5. 의존성 구성
+    t1 >> t2 >> t3 >> t4
