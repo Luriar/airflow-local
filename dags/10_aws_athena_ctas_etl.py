@@ -29,7 +29,7 @@ TARGET_TABLE = 'pass_student'
 
 # 메타 정보, 임시 정보 필요시 저장/삭제 공간으로 활용
 S3_TARGET_LOC = f's3://{BUCKET_NAME}/athena/tbl'
-S3_QUERY_LOG_LOC = f's3//{BUCKET_NAME}/athena/query_logs'
+S3_QUERY_LOG_LOC = f's3://{BUCKET_NAME}/athena/query_logs/'
 
 # 3. DAG 정의
 with DAG(
@@ -58,7 +58,7 @@ with DAG(
     # 임시로 사용한 테이블 삭제 -> 클린
     t2 = AthenaOperator(
         task_id='drop_table',
-        query=f"DROP TABLE IF EXISTS {ATHENA_DB_NAME}.{TARGET_TABLE}",
+        query=f"DROP TABLE IF EXISTS {TARGET_TABLE}",
         database=ATHENA_DB_NAME,
         output_location=S3_QUERY_LOG_LOC, # 쿼리 수행 결과 로그 저장 위치
         aws_conn_id='aws_default' # 접속정보
@@ -68,17 +68,17 @@ with DAG(
     # PARQUET : 압축형태 지원, GZIP등 포맷 사용, 열기반 데이터 관리
     # 90점 이상 학생들 데이터를 추출 -> PARQUET 포맷 변환 -> GZIP 압축 -> S3_TARGET_LOC 저장
     # 해당 소스를 TARGET_TABLE이 참조하여 -> Athena를 통해 쿼리 수행 -> 결과를 뽑아준다
+    # 향후 쿼리 업데이트 -> 당일 시험에 응시한 학생 대상으로 90점 이상만 추출
     query=f'''
-            CREATE TABLE {ATHENA_DB_NAME}.{TARGET_TABLE}
+            CREATE TABLE {TARGET_TABLE}
             WITH (
-                external_location = '{S3_TARGET_LOC}/{TARGET_TABLE}/',
                 format = 'PARQUET',
                 parquet_compression = 'GZIP',
-                external_location = {S3_TARGET_LOC}
+                external_location = '{S3_TARGET_LOC}'
             )
             as
-            SELECT id, name, score, create_at
-            FROM {ATHENA_DB_NAME}.{SRC_TABLE}
+            SELECT id, name, score, created_at
+            FROM {SRC_TABLE}
             WHERE score >= 90
             order by score desc
         '''
