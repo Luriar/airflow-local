@@ -28,7 +28,7 @@ SRC_TABLE = 'athena_s3_data_tbl'
 TARGET_TABLE = 'pass_student'
 
 # 메타 정보, 임시 정보 필요시 저장/삭제 공간으로 활용
-S3_TARGET_LOC = f's3://{BUCKET_NAME}/athena/tbl'
+S3_TARGET_LOC = f's3://{BUCKET_NAME}/athena/tbl/{TARGET_TABLE}/'
 S3_QUERY_LOG_LOC = f's3://{BUCKET_NAME}/athena/query_logs/'
 
 # 3. DAG 정의
@@ -98,7 +98,7 @@ with DAG(
     t4 = AthenaSensor(
         task_id='sensor',
         # 앞 테스크를 감시
-        query_execution_id="{{ task_instance.xcom_pull(task_ids='create_table_format_parquet', key='return_value') }}",
+        query_execution_id = "{{ task_instance.xcom_pull(task_ids='create_table_format_parquet') }}",
         poke_interval=10, # 10초 간격
         timeout=600,      # 최대 대기시간
         aws_conn_id='aws_default'
