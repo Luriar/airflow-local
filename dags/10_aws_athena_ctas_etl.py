@@ -33,7 +33,7 @@ S3_QUERY_LOG_LOC = f's3://{BUCKET_NAME}/athena/query_logs/'
 
 # 3. DAG 정의
 with DAG(
-    dag_id      = "10_aws_athena_ctas_el", 
+    dag_id      = "10_aws_athena_ctas_etl", 
     description = "Athena CTAS 작업",
     default_args= {
         'owner'             : 'de_2team_manager',        
