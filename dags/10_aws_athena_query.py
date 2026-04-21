@@ -47,7 +47,7 @@ with DAG(
     # 목표 raw data(현 csv, 향후 parquet) -> 가공 -> report data 변환(기존 데이터 유지 x)
     # 4. Task 정의 -> athena에 접속해서 필요한 sql을 실행하여 업무를 수행(본질 목표)
     t1 = AthenaOperator(
-        task_id = "raw_data_tbl_create"
+        task_id = "raw_data_tbl_create",
         query = f'''
         CREATE EXTERNAL TABLE IF NOT EXISTS s3_exam_csv_tbl(
             id int,
@@ -64,28 +64,28 @@ with DAG(
         database = DATABASE_NAME,
         output_location = QUERY_RESULT_S3,
         aws_conn_id = 'aws_default'
-
     )
     # 매 스케쥴마다 그 시점의 최신 데이터로 유지하기 위해서 테이블 삭제
+    # 멱등성 -> 매번 주기적으로 반복되는 연산의 결과가 항상 동일하도록 (값의 동일 의미 x, 절차와 형태 등의 동일성)
     t2 = AthenaOperator(
-        task_id = "report_tbl_drop"
+        task_id = "report_tbl_drop",
         query = f'''
-
+        DROP TABLE IF EXISTS dialy_report_tbl;
         ''',
         database = DATABASE_NAME,
         output_location = QUERY_RESULT_S3,
         aws_conn_id = 'aws_default'
     )
-    # ctas
-    t3 = AthenaOperator(
-        task_id = "report_tbl_create_with_raw_data_tbl"
-        query = f'''
+    # # ctas
+    # t3 = AthenaOperator(
+    #     task_id = "report_tbl_create_with_raw_data_tbl",
+    #     query = f'''
 
-        ''',
-        database = DATABASE_NAME,
-        output_location = QUERY_RESULT_S3,
-        aws_conn_id = 'aws_default'
+    #     ''',
+    #     database = DATABASE_NAME,
+    #     output_location = QUERY_RESULT_S3,
+    #     aws_conn_id = 'aws_default'
 
-    )
+    # )
 
-    t1 >> t2 >> t3
+    t1 >> t2 #>> t3
