@@ -54,7 +54,13 @@ with DAG(
         params  = {'database_silver':DATABASE_SILVER, 'tbl_nm':SILVER_TBL_NAME} 
     )
     ctas_silver_task = AthenaOperator(
-        task_id = 'ctas_silver'
+        task_id = 'ctas_silver',
+        query = 'desc {{ params.tbl_nm}};',
+        params = {
+            'database_bronze' : DATABASE_BRONZE,
+            'database_silver' : DATABASE_SILVER.
+            'tbl_nm' : SILVER_TBL_NAME
+        }
     )
 
     # 5. 의존성(injection) 구성
