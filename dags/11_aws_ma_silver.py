@@ -56,9 +56,10 @@ with DAG(
     ctas_silver_task = AthenaOperator(
         task_id = 'ctas_silver',
         query = 'desc {{ params.tbl_nm}};',
+        database= DATABASE_SILVER,
         params = {
             'database_bronze' : DATABASE_BRONZE,
-            'database_silver' : DATABASE_SILVER.
+            'database_silver' : DATABASE_SILVER,
             'tbl_nm' : SILVER_TBL_NAME
         }
     )
