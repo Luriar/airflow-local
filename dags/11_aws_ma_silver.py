@@ -62,7 +62,7 @@ with DAG(
             with(
                 format = 'PARQUET',
                 parquet_compression = 'SNAPPY',
-                external_location  = {{ params.silver_path }},
+                external_location  = '{{ params.silver_path }}',
                 partitioned_by = ARRAY['dt','hr']
             ) as
             select
@@ -74,25 +74,25 @@ with DAG(
                 data.qty,
                 (data.price * data.qty) as total_price,
                 data.store_id,
-                source_id,
+                source_ip,
                 user_agent,
                 cast(year || '-' || month || '-' || day as VARCHAR) as dt,
                 hour as hr
-            from {{ params.DATABASE_BRONZE }}.raw_bronze_tbl
-            where   year = {{ execution_date.foramt('YYYY') }}
-                and month= {{ execution_date.foramt('MM') }}
-                and day  = {{ execution_date.foramt('DD') }}
-                and hour = {{ execution_date.foramt('HH') }}
-
-
+            from {{ params.database_bronze }}.raw_bronze_tbl
+            where   year = '{{ execution_date.format('YYYY') }}'
+                and month= '{{ execution_date.format('MM') }}'
+                and day  = '{{ execution_date.format('DD') }}'
+                and hour = '10'
         '''
+                # and hour = '{{ execution_date.format('HH') }}'
         ,
         database= DATABASE_SILVER,
+        output_location=ATHENA_RESULTS,
         params = {
             'database_bronze' : DATABASE_BRONZE,
             'database_silver' : DATABASE_SILVER,
             'tbl_nm' : SILVER_TBL_NAME,
-            'silver_path' : ATHENA_RESULTS
+            'silver_path' : SILVER_S3_PATH
         }
     )
 
