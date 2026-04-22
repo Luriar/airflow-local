@@ -70,22 +70,34 @@ with DAG(
     t2 = AthenaOperator(
         task_id = "report_tbl_drop",
         query = f'''
-        DROP TABLE IF EXISTS dialy_report_tbl;
+        DROP TABLE IF EXISTS daily_report_tbl;
         ''',
         database = DATABASE_NAME,
         output_location = QUERY_RESULT_S3,
         aws_conn_id = 'aws_default'
     )
-    # # ctas
-    # t3 = AthenaOperator(
-    #     task_id = "report_tbl_create_with_raw_data_tbl",
-    #     query = f'''
+    # ctas
+    t3 = AthenaOperator(
+        task_id = "report_tbl_create_with_raw_data_tbl",
+        query = f'''
+        CREATE TABLE daily_report_tbl
+        WITH(
+            format='PARQUET',
+            external_location='s3://{BUCKET_NAME}/report_data/'
+        )AS
+        SELECT
+            result,
+            count(*) as count,
+            avg(score) as avg_score,
+            min(score) as min_score,
+            max(score) as max_score
+        FROM s3_exam_csv_tbl
+        group by result
+        ''',
+        database = DATABASE_NAME,
+        output_location = QUERY_RESULT_S3,
+        aws_conn_id = 'aws_default'
 
-    #     ''',
-    #     database = DATABASE_NAME,
-    #     output_location = QUERY_RESULT_S3,
-    #     aws_conn_id = 'aws_default'
+    )
 
-    # )
-
-    t1 >> t2 #>> t3
+    t1 >> t2 >> t3
